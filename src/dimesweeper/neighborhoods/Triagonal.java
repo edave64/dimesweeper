@@ -11,12 +11,12 @@ import dimesweeper.INeighborhood;
  *
  * @author sofias
  */
-public class Diagonal extends Leap implements INeighborhood
+public class Triagonal extends Leap implements INeighborhood
 {
-	public final static Diagonal instance = new Diagonal ();
+	public final static Triagonal instance = new Triagonal ();
 
-	public Diagonal () {
+	public Triagonal () {
 		super();
-		pattern.add(1); pattern.add(1);
+		pattern.add(1); pattern.add(1); pattern.add(1);
 	}
 }

@@ -3,10 +3,7 @@
  */
 package dimesweeper;
 
-import dimesweeper.neighborhoods.Diagonal;
-import dimesweeper.neighborhoods.Orthogonal;
-import dimesweeper.neighborhoods.Square;
-import dimesweeper.neighborhoods.Knight;
+import dimesweeper.neighborhoods.*;
 import dimesweeper.positions.Position;
 import dimesweeper.wraps.Non;
 import dimesweeper.wraps.ReflectCell;
@@ -24,17 +21,17 @@ import java.util.Set;
  */
 public class Game extends JFrame
 {
-    public enum NeighboorhoodType { SQUARE, ORTHOGONAL, DIAGONAL, KNIGHT }
+    public enum NeighboorhoodType { SQUARE, ORTHOGONAL, DIAGONAL, TRIAGONAL, QUADRAGONAL, VERTICES, KNIGHT, ULTRAKNIGHT }
     public enum NeighboorhoodWrap { NO, TORUS, REFLECT_EDGE, REFLECT_CELL }
 
 	private static final long serialVersionUID = 1L;
 
 	private final Integer mineCount;
-	public MineSet mines;
-
-	private Integer flagCount;
-	public final HashSet<Position> flags;
-
+	public final PositionSet mines = new PositionSet ();
+	public final PositionSet flags = new PositionSet ();
+	public final PositionSet moves = new PositionSet ();
+	public final PositionSet revealed = new PositionSet ();
+	
 	public Integer revealedCount = 0;
 	private Integer boxletCount = 1;
 
@@ -48,16 +45,6 @@ public class Game extends JFrame
 
 	public boolean firstClick, hints;
 
-	public Game (Integer fieldX, Integer fieldY, Integer mineCount) {
-		this (construct2D (fieldX, fieldY), mineCount, NeighboorhoodType.SQUARE, 1, NeighboorhoodWrap.NO);
-	}
-
-	private static ArrayList<Integer> construct2D (Integer x, Integer y) {
-		ArrayList<Integer> result = new ArrayList<> ();
-		result.add (x);
-		result.add (y);
-		return result;
-	}
 
 	public Game (ArrayList<Integer> fieldSize, Integer mineCount) {
 		this (fieldSize, mineCount, NeighboorhoodType.SQUARE, 1, NeighboorhoodWrap.NO);
@@ -75,8 +62,12 @@ public class Game extends JFrame
         switch (neighborhoodType) {
             case SQUARE: this.neighborhoodType = Square.instance; break;
             case ORTHOGONAL: this.neighborhoodType = Orthogonal.instance; break;
-            case DIAGONAL: this.neighborhoodType = Diagonal.instance; break;
+			case DIAGONAL: this.neighborhoodType = Diagonal.instance; break;
+			case TRIAGONAL: this.neighborhoodType = Triagonal.instance; break;
+			case QUADRAGONAL: this.neighborhoodType = Quadragonal.instance; break;
+            case VERTICES: this.neighborhoodType = Vertices.instance; break;
 			case KNIGHT: this.neighborhoodType = Knight.instance; break;
+			case ULTRAKNIGHT: this.neighborhoodType = UltraKnight.instance; break;
             default:
                 throw new RuntimeException ("Unimplemented neighborhood type");
         }
@@ -90,8 +81,6 @@ public class Game extends JFrame
                 throw new RuntimeException ("Unimplemented wrap type");
         }
 
-		flags = new HashSet <> ();
-		
 		field = new FieldRow (fieldSize, Position.NIL, this);
 
 		boxletCount = countBoxlets (this.fieldSize);
@@ -112,12 +101,12 @@ public class Game extends JFrame
 	}
 
 	public final void firstClick (Position click) {
-		mines = new MineSet (mineCount, fieldSize, click);
+		mines.fillRandomlyWithout (mineCount, fieldSize, click);
 		this.firstClick = false;
 	}
 
 	public Integer flagsLeft () {
-		return mineCount - flagCount;
+		return mineCount - flags.size ();
 	}
 
 	public Boxlet getBoxlet (Position pos) {
@@ -149,7 +138,7 @@ public class Game extends JFrame
 
 	public final void won () {
 		end ();
-		JOptionPane.showMessageDialog (this, "you won." + (mineCount == 0 ? "\nfor sure." : ""), "congraz", JOptionPane.INFORMATION_MESSAGE);
+		JOptionPane.showMessageDialog (this, "you won." + (mineCount == 0 ? "\nand you didn't even need mines." : ""), "congraz", JOptionPane.INFORMATION_MESSAGE);
 	}
 
 	public final Set<Position> findNeighbors (Position position) {
